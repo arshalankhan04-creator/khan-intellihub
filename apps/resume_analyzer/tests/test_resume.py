@@ -185,12 +185,12 @@ class TestResumeUpload:
         assert response.status_code == status.HTTP_202_ACCEPTED
         data = response.json()
         assert 'resume_id' in data
-        # M3: status is PARSED (not PENDING) after a successful upload+parse
-        assert data['status'] == ResumeRecord.STATUS_PARSED
+        # M4: pipeline now advances to SCORED (parse + score both run)
+        assert data['status'] == ResumeRecord.STATUS_SCORED
 
         record = ResumeRecord.objects.get(id=data['resume_id'])
         assert record.user == user_a
-        assert record.status == ResumeRecord.STATUS_PARSED
+        assert record.status == ResumeRecord.STATUS_SCORED
         assert record.original_filename == 'my_resume.pdf'
         assert record.storage_path != ''
         assert record.parsed_data is not None
