@@ -20,6 +20,7 @@ from . import storage
 from .storage import StorageError
 from .pipeline.parser import parse as parse_resume, ParseError
 from .pipeline.scorer import score as score_resume, ScoreError
+from .pipeline.feedback import generate as generate_feedback, FeedbackError
 
 logger = logging.getLogger(__name__)
 
@@ -40,17 +41,16 @@ class ResumeUploadView(APIView):
     Pipeline runs synchronously:
       1. Validate file (size + magic bytes)
       2. Upload to Supabase Storage
-      3. Parse PDF → extract text + detect sections
-      4. Persist parsed_data, set status=PARSED
-      5. Score resume → compute ATS score + category scores
-      6. Persist scores, set status=SCORED
+      3. Parse PDF → extract text + detect sections  (PARSED)
+      4. Score resume → compute ATS score + category scores  (SCORED)
+      5. Generate feedback report  (COMPLETED)
 
     Responses:
-      202 — scored successfully  {resume_id, status: "SCORED", ats_score, scores, ...}
+      202 — completed  {resume_id, status: "COMPLETED", ats_score, feedback_report, ...}
       400 — missing file field
       413 — file exceeds 5 MB
       415 — file is not a PDF
-      422 — parse or score failed (PROCESSING_FAILED)
+      422 — any pipeline stage failed (PROCESSING_FAILED)
       500 — Supabase Storage upload failed
     """
 
@@ -143,21 +143,37 @@ class ResumeUploadView(APIView):
             'formatting_score', 'content_score', 'status', 'updated_at',
         ])
 
+        # ── Step 6: Generate feedback report ─────────────────────────────
+        try:
+            feedback_report = generate_feedback(
+                parsed_data, scoring_result, record.job_description
+            )
+        except FeedbackError as exc:
+            record.status = ResumeRecord.STATUS_FEEDBACK_FAILED
+            record.error_reason = str(exc)
+            record.save(update_fields=['status', 'error_reason', 'updated_at'])
+            return Response(
+                {'error': str(exc), 'code': 'PROCESSING_FAILED'},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        record.feedback_report = feedback_report
+        record.status = ResumeRecord.STATUS_COMPLETED
+        record.save(update_fields=['feedback_report', 'status', 'updated_at'])
+
         return Response(
             {
                 'resume_id': str(record.id),
                 'status': record.status,
                 'ats_score': scoring_result['ats_score'],
                 'scores': {
-                    'skills_match':        scoring_result['skills_score'],
+                    'skills_match':         scoring_result['skills_score'],
                     'section_completeness': scoring_result['section_score'],
-                    'experience_quality':  scoring_result['experience_score'],
-                    'content_quality':     scoring_result['content_score'],
+                    'experience_quality':   scoring_result['experience_score'],
+                    'content_quality':      scoring_result['content_score'],
                 },
-                'missing_skills': scoring_result['missing_skills'],
-                'strengths':      scoring_result['strengths'],
-                'weaknesses':     scoring_result['weaknesses'],
-                'parsed_data':    parsed_data,
+                'feedback_report': feedback_report,
+                'parsed_data':     parsed_data,
             },
             status=status.HTTP_202_ACCEPTED,
         )
@@ -293,13 +309,13 @@ class ResumeResultsView(APIView):
                 'upload_timestamp': record.upload_timestamp,
                 'ats_score': record.ats_score,
                 'scores': {
-                    'skills_match':         float(record.keyword_score)   if record.keyword_score   is not None else None,
-                    'section_completeness': float(record.section_score)   if record.section_score   is not None else None,
+                    'skills_match':         float(record.keyword_score)    if record.keyword_score    is not None else None,
+                    'section_completeness': float(record.section_score)    if record.section_score    is not None else None,
                     'experience_quality':   float(record.formatting_score) if record.formatting_score is not None else None,
-                    'content_quality':      float(record.content_score)   if record.content_score   is not None else None,
+                    'content_quality':      float(record.content_score)    if record.content_score    is not None else None,
                 },
-                'parsed_data': record.parsed_data,
                 'feedback_report': record.feedback_report,
+                'parsed_data': record.parsed_data,
             },
             status=status.HTTP_200_OK,
         )

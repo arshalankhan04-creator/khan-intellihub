@@ -476,7 +476,8 @@ class TestScorerUploadIntegration:
                 reverse('resume-upload'), {'file': pdf}, format='multipart'
             )
         assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.json()['status'] == ResumeRecord.STATUS_SCORED
+        # M5: pipeline now advances to COMPLETED (parse → score → feedback)
+        assert response.json()['status'] == ResumeRecord.STATUS_COMPLETED
 
     def test_upload_response_contains_ats_score(self, auth_client, sample_pdf_bytes):
         pdf = io.BytesIO(sample_pdf_bytes)
@@ -512,8 +513,10 @@ class TestScorerUploadIntegration:
                 reverse('resume-upload'), {'file': pdf}, format='multipart'
             )
         data = response.json()
-        assert 'missing_skills' in data
-        assert isinstance(data['missing_skills'], list)
+        # M5: missing_skills now lives inside feedback_report
+        assert 'feedback_report' in data
+        assert 'missing_skills' in data['feedback_report']
+        assert isinstance(data['feedback_report']['missing_skills'], list)
 
     def test_upload_response_contains_strengths_and_weaknesses(
         self, auth_client, sample_pdf_bytes
@@ -526,10 +529,12 @@ class TestScorerUploadIntegration:
                 reverse('resume-upload'), {'file': pdf}, format='multipart'
             )
         data = response.json()
-        assert 'strengths' in data
-        assert 'weaknesses' in data
-        assert isinstance(data['strengths'], list)
-        assert isinstance(data['weaknesses'], list)
+        # M5: strengths/weaknesses now live inside feedback_report as top_strengths/top_weaknesses
+        fb = data.get('feedback_report', {})
+        assert 'top_strengths' in fb
+        assert 'top_weaknesses' in fb
+        assert isinstance(fb['top_strengths'], list)
+        assert isinstance(fb['top_weaknesses'], list)
 
     def test_db_record_has_ats_score_after_upload(self, auth_client, user, sample_pdf_bytes):
         pdf = io.BytesIO(sample_pdf_bytes)
@@ -566,7 +571,8 @@ class TestScorerUploadIntegration:
                 reverse('resume-upload'), {'file': pdf}, format='multipart'
             )
         record = ResumeRecord.objects.get(id=response.json()['resume_id'])
-        assert record.status == ResumeRecord.STATUS_SCORED
+        # M5: final status is now COMPLETED (score + feedback both ran)
+        assert record.status == ResumeRecord.STATUS_COMPLETED
 
     def test_score_failure_sets_score_failed_status(self, auth_client, user, sample_pdf_bytes):
         pdf = io.BytesIO(sample_pdf_bytes)
@@ -600,7 +606,8 @@ class TestScorerUploadIntegration:
         assert results_resp.status_code == status.HTTP_200_OK
         data = results_resp.json()
         assert data['ats_score'] is not None
-        assert data['status'] == ResumeRecord.STATUS_SCORED
+        # M5: final status is COMPLETED
+        assert data['status'] == ResumeRecord.STATUS_COMPLETED
         scores = data.get('scores', {})
         assert scores.get('skills_match') is not None
         assert scores.get('section_completeness') is not None

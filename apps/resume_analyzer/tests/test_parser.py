@@ -222,8 +222,8 @@ class TestUploadParserIntegration:
 
         assert response.status_code == status.HTTP_202_ACCEPTED
         data = response.json()
-        # M4: pipeline now advances to SCORED after parse + score
-        assert data['status'] == ResumeRecord.STATUS_SCORED
+        # M5: pipeline now advances to COMPLETED (parse + score + feedback)
+        assert data['status'] == ResumeRecord.STATUS_COMPLETED
 
     def test_upload_response_contains_parsed_data(self, auth_client, sample_pdf_bytes):
         pdf = io.BytesIO(sample_pdf_bytes)
@@ -274,8 +274,8 @@ class TestUploadParserIntegration:
 
         resume_id = response.json()['resume_id']
         record = ResumeRecord.objects.get(id=resume_id)
-        # M4: pipeline now advances to SCORED
-        assert record.status == ResumeRecord.STATUS_SCORED
+        # M5: pipeline now advances to COMPLETED
+        assert record.status == ResumeRecord.STATUS_COMPLETED
         assert record.parsed_data is not None
 
     def test_empty_pdf_returns_422_parse_failed(self, auth_client, empty_pdf_bytes):
@@ -333,8 +333,8 @@ class TestUploadParserIntegration:
 
         assert results_resp.status_code == status.HTTP_200_OK
         data = results_resp.json()
-        # M4: pipeline now advances to SCORED after parse + score
-        assert data['status'] == ResumeRecord.STATUS_SCORED
+        # M5: pipeline now advances to COMPLETED after parse + score + feedback
+        assert data['status'] == ResumeRecord.STATUS_COMPLETED
         assert data['parsed_data'] is not None
         assert 'sections' in data['parsed_data']
 
