@@ -26,17 +26,15 @@ export function CareerAdvisorPage() {
   
   // Form values
   const [selectedResumeId, setSelectedResumeId] = useState('')
-  const [targetRole, setTargetRole] = useState('Software Engineer')
-  const [location, setLocation] = useState('United States')
+  const [targetRole, setTargetRole] = useState('')
+  const [location, setLocation] = useState('')
   const [manualSkills, setManualSkills] = useState('')
   
   // Loading & Error states
   const [generating, setGenerating] = useState(false)
   const [formError, setFormError] = useState('')
   
-  // Pagination for history
-  const [page, setPage] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+
 
   // Searchable dropdown states and refs
   const [jobDropdownOpen, setJobDropdownOpen] = useState(false)
@@ -89,7 +87,6 @@ export function CareerAdvisorPage() {
     try {
       await deleteAdviceRecord(recordId)
       setHistory(prev => prev.filter(item => item.id !== recordId))
-      setTotalCount(prev => prev - 1)
     } catch (err) {
       console.error("Failed to delete record", err)
       alert("Failed to delete the record. Please try again.")
@@ -113,16 +110,15 @@ export function CareerAdvisorPage() {
   }, [])
 
   useEffect(() => {
-    // Fetch advice history
+    // Fetch recent 3 advice history items
     setLoadingHistory(true)
-    getAdviceHistory({ page, page_size: 10 })
+    getAdviceHistory({ page: 1, page_size: 3 })
       .then(data => {
         setHistory(data.results)
-        setTotalCount(data.total_count)
       })
       .catch(err => console.error("Failed to load history", err))
       .finally(() => setLoadingHistory(false))
-  }, [page])
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -419,7 +415,7 @@ export function CareerAdvisorPage() {
 
         {/* Right column / bottom row: Advice History */}
         <div className="card history-card career-history-card">
-          <h2 className="section-title">Advice History</h2>
+          <h2 className="section-title">Recent Advice History</h2>
           {loadingHistory ? (
             <LoadingSpinner />
           ) : history.length === 0 ? (
