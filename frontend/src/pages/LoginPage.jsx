@@ -5,6 +5,7 @@
  */
 import { useSearchParams } from 'react-router-dom'
 import { LoginForm } from '../components/auth/LoginForm'
+import { ThemeToggle } from '../components/common/ThemeToggle'
 
 export function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -12,6 +13,7 @@ export function LoginPage() {
 
   return (
     <div className="auth-page">
+      <ThemeToggle floating />
       <div className="auth-card">
         <LoginForm nextPath={next} />
       </div>

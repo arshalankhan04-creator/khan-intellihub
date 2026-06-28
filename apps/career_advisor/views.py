@@ -382,6 +382,24 @@ class CareerAdvisorResultsView(APIView):
         serializer = CareerAdvisorRecordSerializer(record)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def delete(self, request, record_id):
+        try:
+            record = CareerAdvisorRecord.objects.get(id=record_id)
+        except CareerAdvisorRecord.DoesNotExist:
+            return Response(
+                {'error': 'Career advice record not found.', 'code': 'NOT_FOUND'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if record.user_id != request.user.id:
+            return Response(
+                {'error': 'You do not have permission to delete this record.', 'code': 'FORBIDDEN'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        record.delete()
+        return Response({'message': 'Record deleted successfully.'}, status=status.HTTP_200_OK)
+
 
 class CareerAdvisorHistoryView(APIView):
     """

@@ -3,10 +3,12 @@
  * Explains the product and drives sign-up.
  */
 import { Link } from 'react-router-dom'
+import { ThemeToggle } from '../components/common/ThemeToggle'
 
 export function LandingPage() {
   return (
     <div className="landing">
+      <ThemeToggle floating />
       {/* Hero */}
       <header className="landing__hero">
         <h1 className="landing__title">Khan IntelliHub</h1>

@@ -197,6 +197,23 @@ class TestCareerAdvisorResultsView:
         response = auth_client1.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_delete_results_success(self, auth_client1, advice_record):
+        url = reverse('career-advisor-results', kwargs={'record_id': str(advice_record.id)})
+        response = auth_client1.delete(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert not CareerAdvisorRecord.objects.filter(id=advice_record.id).exists()
+
+    def test_delete_results_forbidden_for_other_user(self, auth_client2, advice_record):
+        url = reverse('career-advisor-results', kwargs={'record_id': str(advice_record.id)})
+        response = auth_client2.delete(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert CareerAdvisorRecord.objects.filter(id=advice_record.id).exists()
+
+    def test_delete_results_not_found(self, auth_client1):
+        url = reverse('career-advisor-results', kwargs={'record_id': '00000000-0000-0000-0000-000000000000'})
+        response = auth_client1.delete(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 class TestCareerAdvisorHistoryView:
 

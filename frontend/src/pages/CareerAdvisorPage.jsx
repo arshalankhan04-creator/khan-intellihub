@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { listResumes, uploadResume } from '../api/resumeService'
-import { generateAdvice, getAdviceHistory } from '../api/careerAdvisorService'
+import { generateAdvice, getAdviceHistory, deleteAdviceRecord } from '../api/careerAdvisorService'
 import { LoadingSpinner } from '../components/common/LoadingSpinner'
 import { ErrorMessage } from '../components/common/ErrorMessage'
 import { LoadingOverlay } from '../components/common/LoadingOverlay'
@@ -37,6 +37,48 @@ export function CareerAdvisorPage() {
   // Pagination for history
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+
+  // Autocomplete suggestions
+  const [showJobSug, setShowJobSug] = useState(false)
+  const [showLocSug, setShowLocSug] = useState(false)
+
+  const jobSuggestions = [
+    'Software Engineer', 'Full-Stack Developer', 'Frontend Developer', 'Backend Developer',
+    'DevOps Engineer', 'Data Analyst', 'Data Scientist', 'Machine Learning Engineer',
+    'Civil Engineer', 'Mechanical Engineer', 'Financial Analyst', 'Finance Manager',
+    'Marketing Coordinator', 'Digital Marketing Specialist', 'Digital Marketing Manager',
+    'Healthcare Administrator', 'Healthcare Manager', 'Product Manager', 'Project Manager',
+    'QA Engineer', 'React Developer', 'Python Developer', 'Java Developer'
+  ]
+
+  const locationSuggestions = [
+    'Remote', 'San Francisco, CA', 'New York, NY', 'Seattle, WA', 'Austin, TX',
+    'Los Angeles, CA', 'Boston, MA', 'Chicago, IL', 'Denver, CO', 'Atlanta, GA',
+    'London, UK', 'Toronto, ON', 'Bangalore, India', 'Berlin, Germany',
+    'Paris, France', 'Sydney, Australia'
+  ]
+
+  const filteredJobs = targetRole.trim() === ''
+    ? jobSuggestions
+    : jobSuggestions.filter(item => item.toLowerCase().includes(targetRole.toLowerCase()))
+
+  const filteredLocs = location.trim() === ''
+    ? locationSuggestions
+    : locationSuggestions.filter(item => item.toLowerCase().includes(location.toLowerCase()))
+
+  async function handleDelete(recordId) {
+    if (!window.confirm("Are you sure you want to delete this career advice record?")) {
+      return
+    }
+    try {
+      await deleteAdviceRecord(recordId)
+      setHistory(prev => prev.filter(item => item.id !== recordId))
+      setTotalCount(prev => prev - 1)
+    } catch (err) {
+      console.error("Failed to delete record", err)
+      alert("Failed to delete the record. Please try again.")
+    }
+  }
 
   useEffect(() => {
     // Fetch completed resumes for dropdown
@@ -240,7 +282,7 @@ export function CareerAdvisorPage() {
             )}
 
             <div className="form-row">
-              <div className="form-group">
+              <div className="form-group autocomplete-container">
                 <label className="form-label" htmlFor="targetRole">Target Job Title</label>
                 <input
                   id="targetRole"
@@ -248,13 +290,32 @@ export function CareerAdvisorPage() {
                   className="form-input"
                   value={targetRole}
                   onChange={(e) => setTargetRole(e.target.value)}
+                  onFocus={() => setShowJobSug(true)}
+                  onBlur={() => setShowJobSug(false)}
                   placeholder="e.g. Frontend Developer"
                   disabled={generating}
                   required
+                  autoComplete="off"
                 />
+                {showJobSug && filteredJobs.length > 0 && (
+                  <ul className="suggestions-list">
+                    {filteredJobs.map((item, idx) => (
+                      <li
+                        key={idx}
+                        className="suggestion-item"
+                        onMouseDown={() => {
+                          setTargetRole(item)
+                          setShowJobSug(false)
+                        }}
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
-              <div className="form-group">
+              <div className="form-group autocomplete-container">
                 <label className="form-label" htmlFor="location">Target Location</label>
                 <input
                   id="location"
@@ -262,10 +323,29 @@ export function CareerAdvisorPage() {
                   className="form-input"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  onFocus={() => setShowLocSug(true)}
+                  onBlur={() => setShowLocSug(false)}
                   placeholder="e.g. San Francisco, CA"
                   disabled={generating}
                   required
+                  autoComplete="off"
                 />
+                {showLocSug && filteredLocs.length > 0 && (
+                  <ul className="suggestions-list">
+                    {filteredLocs.map((item, idx) => (
+                      <li
+                        key={idx}
+                        className="suggestion-item"
+                        onMouseDown={() => {
+                          setLocation(item)
+                          setShowLocSug(false)
+                        }}
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 
@@ -303,10 +383,17 @@ export function CareerAdvisorPage() {
                       {new Date(record.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="history-item__actions">
+                  <div className="history-item__actions" style={{ display: 'flex', gap: '0.5rem' }}>
                     <Link to={`/career-advisor/${record.id}`} className="btn btn--secondary btn--sm">
                       View Dashboard
                     </Link>
+                    <button
+                      type="button"
+                      className="btn btn--danger btn--sm"
+                      onClick={() => handleDelete(record.id)}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}

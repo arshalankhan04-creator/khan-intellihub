@@ -4,6 +4,7 @@
  */
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Navbar() {
   const { userEmail, logout } = useAuth()
@@ -29,6 +30,7 @@ export function Navbar() {
 
       <div className="navbar__user">
         <span className="navbar__email">{userEmail}</span>
+        <ThemeToggle />
         <button
           type="button"
           className="btn btn--secondary btn--sm"

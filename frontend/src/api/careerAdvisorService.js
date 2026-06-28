@@ -47,3 +47,13 @@ export function getAdviceHistory({ page = 1, page_size = 10 } = {}) {
   return client.get('/api/v1/career-advisor/history/', { params: { page, page_size } })
     .then(res => res.data)
 }
+
+/**
+ * Delete a career advice record.
+ * @param {string} recordId - UUID of the career advisor record.
+ * @returns {Promise} Resolved with success message.
+ */
+export function deleteAdviceRecord(recordId) {
+  return client.delete(`/api/v1/career-advisor/${recordId}/results/`)
+    .then(res => res.data)
+}
