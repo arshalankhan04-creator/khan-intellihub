@@ -24,6 +24,7 @@ export function Navbar() {
         <Link to="/dashboard" className="navbar__link">Dashboard</Link>
         <Link to="/upload"    className="navbar__link">Upload</Link>
         <Link to="/history"   className="navbar__link">History</Link>
+        <Link to="/career-advisor" className="navbar__link">Career Advisor</Link>
       </div>
 
       <div className="navbar__user">

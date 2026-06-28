@@ -83,6 +83,8 @@ def generate(
     FeedbackError on unexpected failure
     """
     try:
+        if scoring_result and isinstance(scoring_result, dict) and '_gemini_feedback_report' in scoring_result:
+            return scoring_result['_gemini_feedback_report']
         return _generate(parsed_resume, scoring_result, job_description)
     except FeedbackError:
         raise

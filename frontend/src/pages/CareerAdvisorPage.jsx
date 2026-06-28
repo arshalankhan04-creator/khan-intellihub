@@ -1,0 +1,319 @@
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { listResumes, uploadResume } from '../api/resumeService'
+import { generateAdvice, getAdviceHistory } from '../api/careerAdvisorService'
+import { LoadingSpinner } from '../components/common/LoadingSpinner'
+import { ErrorMessage } from '../components/common/ErrorMessage'
+import { LoadingOverlay } from '../components/common/LoadingOverlay'
+
+export function CareerAdvisorPage() {
+  const navigate = useNavigate()
+  
+  // Tabs: 'resume' or 'manual'
+  const [activeTab, setActiveTab] = useState('resume')
+  
+  // Resume option: 'upload' or 'select'
+  const [resumeOption, setResumeOption] = useState('upload')
+  const [uploadFile, setUploadFile] = useState(null)
+  
+  // Resumes list for Tab 1
+  const [resumes, setResumes] = useState([])
+  const [loadingResumes, setLoadingResumes] = useState(false)
+  
+  // History list
+  const [history, setHistory] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  
+  // Form values
+  const [selectedResumeId, setSelectedResumeId] = useState('')
+  const [targetRole, setTargetRole] = useState('Software Engineer')
+  const [location, setLocation] = useState('United States')
+  const [manualSkills, setManualSkills] = useState('')
+  
+  // Loading & Error states
+  const [generating, setGenerating] = useState(false)
+  const [formError, setFormError] = useState('')
+  
+  // Pagination for history
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+
+  useEffect(() => {
+    // Fetch completed resumes for dropdown
+    setLoadingResumes(true)
+    listResumes({ page: 1, page_size: 50 })
+      .then(data => {
+        // Only keep COMPLETED resumes
+        const completed = data.results.filter(r => r.status === 'COMPLETED')
+        setResumes(completed)
+        if (completed.length > 0) {
+          setSelectedResumeId(completed[0].resume_id)
+        }
+      })
+      .catch(err => console.error("Failed to load resumes", err))
+      .finally(() => setLoadingResumes(false))
+  }, [])
+
+  useEffect(() => {
+    // Fetch advice history
+    setLoadingHistory(true)
+    getAdviceHistory({ page, page_size: 10 })
+      .then(data => {
+        setHistory(data.results)
+        setTotalCount(data.total_count)
+      })
+      .catch(err => console.error("Failed to load history", err))
+      .finally(() => setLoadingHistory(false))
+  }, [page])
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setFormError('')
+    setGenerating(true)
+
+    try {
+      let adviceRecord
+      if (activeTab === 'resume') {
+        let resumeId = selectedResumeId
+        
+        if (resumeOption === 'upload') {
+          if (!uploadFile) {
+            throw new Error('Please select a PDF file to upload.')
+          }
+          // Step 1: Upload and analyze
+          const uploadResult = await uploadResume(uploadFile, null)
+          resumeId = uploadResult.resume_id
+        }
+
+        if (!resumeId) {
+          throw new Error('Please select an analyzed resume or upload one.')
+        }
+        
+        // Step 2: Generate advice
+        adviceRecord = await generateAdvice(resumeId, targetRole, location)
+      } else {
+        // Manual mode
+        const skillsArray = manualSkills
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+        
+        if (skillsArray.length === 0) {
+          throw new Error('Please enter at least one skill.')
+        }
+        adviceRecord = await generateAdvice(null, targetRole, location, skillsArray)
+      }
+      
+      // Navigate to results
+      navigate(`/career-advisor/${adviceRecord.id}`)
+    } catch (err) {
+      setFormError(err.response?.data?.error || err.message || 'Failed to generate career advice.')
+      setGenerating(false)
+    }
+  }
+
+  return (
+    <div className="career-advisor-page page-container">
+      {generating && (
+        <LoadingOverlay
+          title={resumeOption === 'upload' && activeTab === 'resume' ? "Uploading & Analyzing Resume" : "Generating Career Roadmap"}
+          description={
+            resumeOption === 'upload' && activeTab === 'resume'
+              ? "Khan IntelliHub is parsing, scoring, and analyzing your resume first..."
+              : "Generating custom career paths, salary metrics, action plan checklist, and matching live job listings..."
+          }
+        />
+      )}
+      <div className="career-advisor-page__header">
+        <h1 className="page-title">AI Career Advisor</h1>
+        <p className="page-subtitle">Get custom career paths, salary insights, checklists, and matching job listings.</p>
+      </div>
+
+      <div className="career-advisor-layout">
+        {/* Left column: Generator Form */}
+        <div className="card career-advisor-card">
+          <div className="tab-header">
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'resume' ? 'tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('resume')}
+              disabled={generating}
+            >
+              Analyze with Resume
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'manual' ? 'tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('manual')}
+              disabled={generating}
+            >
+              Manual Profile Setup
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="form career-form">
+            {formError && <ErrorMessage message={formError} />}
+
+            {activeTab === 'resume' ? (
+              <div className="form-group">
+                <label className="form-label" style={{ marginBottom: '0.5rem' }}>Resume Source</label>
+                <div className="radio-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.25rem' }}>
+                  <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    <input
+                      type="radio"
+                      name="resumeOption"
+                      value="upload"
+                      checked={resumeOption === 'upload'}
+                      onChange={() => setResumeOption('upload')}
+                      disabled={generating}
+                    />
+                    Upload and Analyze a Resume
+                  </label>
+                  <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    <input
+                      type="radio"
+                      name="resumeOption"
+                      value="select"
+                      checked={resumeOption === 'select'}
+                      onChange={() => setResumeOption('select')}
+                      disabled={generating}
+                    />
+                    Select from Previously Uploaded Resumes
+                  </label>
+                </div>
+
+                {resumeOption === 'upload' ? (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="resumeFile">Upload PDF Resume</label>
+                    <input
+                      id="resumeFile"
+                      type="file"
+                      accept=".pdf"
+                      className="form-input"
+                      onChange={(e) => setUploadFile(e.target.files[0])}
+                      disabled={generating}
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="resumeSelect">Select Analyzed Resume</label>
+                    {loadingResumes ? (
+                      <div className="loading-small">Loading resumes...</div>
+                    ) : resumes.length === 0 ? (
+                      <div className="form-helper-error">
+                        No completed resumes found. Please upload a new resume or select manual profile setup.
+                      </div>
+                    ) : (
+                      <select
+                        id="resumeSelect"
+                        className="form-input"
+                        value={selectedResumeId}
+                        onChange={(e) => setSelectedResumeId(e.target.value)}
+                        disabled={generating}
+                      >
+                        {resumes.map(r => (
+                          <option key={r.resume_id} value={r.resume_id}>
+                            {r.original_filename} (ATS: {r.ats_score})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="form-group">
+                <label className="form-label" htmlFor="manualSkills">My Professional Skills</label>
+                <textarea
+                  id="manualSkills"
+                  className="form-input"
+                  rows="3"
+                  placeholder="e.g. Python, SQL, Git, React, Project Management (comma-separated)"
+                  value={manualSkills}
+                  onChange={(e) => setManualSkills(e.target.value)}
+                  disabled={generating}
+                  required
+                />
+                <span className="form-helper">Enter your skills separated by commas.</span>
+              </div>
+            )}
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="targetRole">Target Job Title</label>
+                <input
+                  id="targetRole"
+                  type="text"
+                  className="form-input"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  placeholder="e.g. Frontend Developer"
+                  disabled={generating}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="location">Target Location</label>
+                <input
+                  id="location"
+                  type="text"
+                  className="form-input"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g. San Francisco, CA"
+                  disabled={generating}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn--primary btn--block"
+              disabled={generating || (activeTab === 'resume' && resumeOption === 'select' && resumes.length === 0)}
+            >
+              {generating 
+                ? (resumeOption === 'upload' && activeTab === 'resume' ? 'Uploading & Analyzing Resume...' : 'Generating Advice...') 
+                : 'Generate Career Plan'}
+            </button>
+          </form>
+        </div>
+
+        {/* Right column / bottom row: Advice History */}
+        <div className="card history-card career-history-card">
+          <h2 className="section-title">Advice History</h2>
+          {loadingHistory ? (
+            <LoadingSpinner />
+          ) : history.length === 0 ? (
+            <div className="empty-state">
+              <p>No career advice records generated yet.</p>
+            </div>
+          ) : (
+            <div className="history-list">
+              {history.map(record => (
+                <div key={record.id} className="history-item">
+                  <div className="history-item__info">
+                    <h3 className="history-item__title">{record.target_role}</h3>
+                    <p className="history-item__meta">
+                      {record.location} | {record.resume_filename ? `Resume: ${record.resume_filename}` : 'Self-Input Profile'}
+                    </p>
+                    <span className="history-item__date">
+                      {new Date(record.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="history-item__actions">
+                    <Link to={`/career-advisor/${record.id}`} className="btn btn--secondary btn--sm">
+                      View Dashboard
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

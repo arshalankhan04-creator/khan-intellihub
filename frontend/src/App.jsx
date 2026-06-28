@@ -27,6 +27,8 @@ import { DashboardPage } from './pages/DashboardPage'
 import { UploadPage }   from './pages/UploadPage'
 import { ResultsPage }  from './pages/ResultsPage'
 import { HistoryPage }  from './pages/HistoryPage'
+import { CareerAdvisorPage } from './pages/CareerAdvisorPage'
+import { CareerResultsPage } from './pages/CareerResultsPage'
 
 /** Layout wrapper for authenticated pages: Navbar above, content below. */
 function AuthenticatedLayout() {
@@ -59,6 +61,8 @@ export default function App() {
               <Route path="/upload"             element={<UploadPage />} />
               <Route path="/results/:resumeId"  element={<ResultsPage />} />
               <Route path="/history"            element={<HistoryPage />} />
+              <Route path="/career-advisor"     element={<CareerAdvisorPage />} />
+              <Route path="/career-advisor/:recordId" element={<CareerResultsPage />} />
             </Route>
           </Route>
         </Routes>

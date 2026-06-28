@@ -43,6 +43,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'apps.auth_service',
     'apps.resume_analyzer',
+    'apps.career_advisor',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -177,3 +178,11 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:5173', cast=Csv())
 CORS_ALLOW_CREDENTIALS = True
+
+# ---------------------------------------------------------------------------
+# AI & External APIs (Redesign Plan)
+# ---------------------------------------------------------------------------
+GEMINI_API_KEY = config('GEMINI_API_KEY', default=None)
+ADZUNA_APP_ID = config('ADZUNA_APP_ID', default=None)
+ADZUNA_APP_KEY = config('ADZUNA_APP_KEY', default=None)
+

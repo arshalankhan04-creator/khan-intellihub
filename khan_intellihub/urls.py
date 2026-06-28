@@ -15,4 +15,7 @@ urlpatterns = [
 
     # Resume endpoints: /api/v1/resumes/
     path('api/v1/resumes/', include('apps.resume_analyzer.urls')),
+
+    # Career Advisor endpoints: /api/v1/career-advisor/
+    path('api/v1/career-advisor/', include('apps.career_advisor.urls')),
 ]

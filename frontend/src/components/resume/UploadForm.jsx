@@ -6,6 +6,7 @@
 import { useState, useRef } from 'react'
 import { uploadResume } from '../../api/resumeService'
 import { ErrorMessage } from '../common/ErrorMessage'
+import { LoadingOverlay } from '../common/LoadingOverlay'
 
 export function UploadForm({ onSuccess }) {
   const [selectedFile, setSelectedFile]   = useState(null)
@@ -77,6 +78,12 @@ export function UploadForm({ onSuccess }) {
 
   return (
     <form className="upload-form" onSubmit={handleSubmit}>
+      {isLoading && (
+        <LoadingOverlay 
+          title="Analyzing Resume" 
+          description="Khan IntelliHub is parsing, scoring, and generating feedback for your resume. This may take a few seconds..." 
+        />
+      )}
       <ErrorMessage message={error} onDismiss={() => setError('')} />
 
       {/* Drop zone */}

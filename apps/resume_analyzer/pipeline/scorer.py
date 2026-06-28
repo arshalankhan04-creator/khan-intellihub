@@ -102,23 +102,27 @@ _SECTION_MIN_WORDS = {
 # Public API
 # ---------------------------------------------------------------------------
 
+import json
+from django.conf import settings
+
 def score(parsed_resume: dict, job_description: str | None = None) -> dict:
     """
-    Compute a deterministic ATS score from a parsed resume.
-
-    Parameters
-    ----------
-    parsed_resume  : dict returned by parser.parse()
-    job_description: optional plain-text job description
-
-    Returns
-    -------
-    dict with ats_score, category scores, missing_skills, strengths, weaknesses
-
-    Raises
-    ------
-    ScoreError on unexpected failure
+    Compute ATS score from a parsed resume.
+    Tries to use Gemini API (with Scikit-Learn preprocessing), and falls back
+    to the deterministic rule-based scorer if Gemini is not configured or fails.
     """
+    if not parsed_resume or not isinstance(parsed_resume, dict):
+        raise ScoreError("Input must be a non-empty parsed resume dictionary")
+
+    api_key = getattr(settings, 'GEMINI_API_KEY', None)
+    if api_key:
+        try:
+            result = _score_with_gemini(parsed_resume, job_description, api_key)
+            if result:
+                return result
+        except Exception as exc:
+            logger.warning("Gemini scoring failed, falling back to local scorer: %s", exc)
+
     try:
         return _compute(parsed_resume, job_description)
     except ScoreError:
@@ -126,6 +130,121 @@ def score(parsed_resume: dict, job_description: str | None = None) -> dict:
     except Exception as exc:
         logger.exception("Scorer encountered an unexpected error: %s", exc)
         raise ScoreError(f"Scoring failed: {exc}") from exc
+
+
+def _score_with_gemini(parsed_resume: dict, job_description: str | None, api_key: str) -> dict | None:
+    import google.generativeai as genai
+    from .preprocessor import preprocess_resume
+
+    raw_text = parsed_resume.get('raw_text', '') or ''
+    sections = parsed_resume.get('sections', {}) or {}
+    
+    # Run Scikit-Learn preprocessing
+    prep_results = preprocess_resume(raw_text, job_description)
+    
+    # Configure Gemini
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    
+    prompt = f"""
+You are an expert resume reviewer and career coach. Your task is to perform an in-depth, professional ATS (Applicant Tracking System) analysis of the provided resume.
+
+REPOSITORIES AND JOB DESCRIPTION CONTEXT:
+Job Description: {job_description or "No target job description provided (General software developer assessment)"}
+
+PRE-PROCESSED METRICS (Scikit-Learn Preprocessing):
+- Cosine Similarity with Job Description: {prep_results['job_similarity'] or "N/A"}%
+- Top Extracted TF-IDF Keywords: {', '.join(prep_results['keywords'])}
+- Classified Resume Domain: {prep_results['classified_domain']} (Confidence: {prep_results['domain_confidence']}%)
+
+RESUME CONTENT BY SECTION:
+- Contact Information: {sections.get('contact') or "Empty"}
+- Skills: {sections.get('skills') or "Empty"}
+- Education: {sections.get('education') or "Empty"}
+- Experience: {sections.get('experience') or "Empty"}
+- Projects: {sections.get('projects') or "Empty"}
+- Certifications: {sections.get('certifications') or "Empty"}
+
+INSTRUCTIONS:
+Generate a comprehensive ATS feedback analysis and scoring. Return your response as a valid, parsable JSON object.
+Your JSON object MUST contain exactly the following structure:
+{{
+    "ats_score": <integer from 0 to 100 representing the overall ATS score>,
+    "skills_score": <float from 0.0 to 100.0 representing the skills match category score (40% weight)>,
+    "section_score": <float from 0.0 to 100.0 representing the section completeness category score (20% weight)>,
+    "experience_score": <float from 0.0 to 100.0 representing the experience quality category score (20% weight)>,
+    "content_score": <float from 0.0 to 100.0 representing the content quality category score (20% weight)>,
+    "missing_skills": [
+        <list of up to 10 critical technical/soft skills from the job description or industry corpus that are missing from the resume>
+    ],
+    "strengths": [
+        <list of 3-5 specific strengths of the resume>
+    ],
+    "weaknesses": [
+        <list of 3-5 specific weaknesses of the resume>
+    ],
+    "feedback_report": {{
+        "overall_summary": "<compelling, professional multi-sentence summary of the resume quality>",
+        "top_strengths": [
+            <list of up to 5 detailed strengths>
+        ],
+        "top_weaknesses": [
+            <list of up to 5 detailed weaknesses>
+        ],
+        "priority_actions": [
+            {{
+                "priority": "high" | "medium" | "low",
+                "action": "<detailed action description>"
+            }}
+        ],
+        "section_suggestions": {{
+            "contact": "<constructive feedback for contact section or null if perfect>",
+            "skills": "<constructive feedback for skills section or null if perfect>",
+            "education": "<constructive feedback for education section or null if perfect>",
+            "experience": "<constructive feedback for experience section or null if perfect>",
+            "projects": "<constructive feedback for projects section or null if perfect>",
+            "certifications": "<constructive feedback for certifications section or null if perfect>"
+        }},
+        "skills_suggestions": [
+            <list of specific tips to improve the skills presentation>
+        ],
+        "experience_suggestions": [
+            <list of tips to improve experience descriptions, e.g. using action verbs, quantifying results>
+        ],
+        "enhancement_tips": [
+            <list of general tips for design, formatting, ATS parsing friendliness, or repository links>
+        ],
+        "missing_skills": [
+            <list of missing skills to add>
+        ]
+    }}
+}}
+
+Return ONLY the JSON object. Do not include markdown formatting like ```json or any other text before/after the JSON.
+"""
+
+    response = model.generate_content(prompt)
+    text = response.text.strip()
+    if text.startswith("```json"):
+        text = text[7:]
+    if text.endswith("```"):
+        text = text[:-3]
+    text = text.strip()
+    
+    data = json.loads(text)
+    
+    return {
+        'ats_score': int(data['ats_score']),
+        'skills_score': round(float(data['skills_score']), 2),
+        'section_score': round(float(data['section_score']), 2),
+        'experience_score': round(float(data['experience_score']), 2),
+        'content_score': round(float(data['content_score']), 2),
+        'missing_skills': data.get('missing_skills', []),
+        'strengths': data.get('strengths', []),
+        'weaknesses': data.get('weaknesses', []),
+        '_gemini_feedback_report': data.get('feedback_report', {})
+    }
+
 
 
 # ---------------------------------------------------------------------------
