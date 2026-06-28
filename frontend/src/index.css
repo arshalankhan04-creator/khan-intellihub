@@ -862,27 +862,44 @@ input, textarea, select {
 }
 
 /* ── Results Layout ────────────────────────────────────── */
-.results-page__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 1.25rem;
+.main-content:has(.results-page) {
+  max-width: 1200px;
 }
+.results-page.page-container {
+  max-width: 1200px;
+}
+
 .results-page__top {
-  display: flex;
-  align-items: flex-start;
-  gap: 3rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 2rem;
   margin-bottom: 2rem;
+  align-items: stretch;
+}
+.results-page__top > div {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+.results-page__top .score-gauge {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .results-page__top {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 /* ── Feedback Sections ─────────────────────────────────── */
 .feedback-section {
-  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 .feedback-summary__text {
   line-height: 1.7;
@@ -890,13 +907,14 @@ input, textarea, select {
   font-size: 1rem;
 }
 .feedback-subsection {
-  margin-top: 1.75rem;
+  margin-top: 1rem;
 }
 .bullet-list {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: .75rem;
+  margin-top: 1rem;
 }
 .bullet-list__item {
   display: flex;
@@ -908,12 +926,13 @@ input, textarea, select {
   flex-shrink: 0;
   width: 1.2rem;
   text-align: center;
+  font-weight: 800;
+}
+.recommendation-column .bullet-list__icon {
+  opacity: 0.85;
 }
 
 /* ── Priority Actions Accordion ────────────────────────── */
-.priority-actions {
-  margin-top: 1.5rem;
-}
 .priority-group {
   margin-bottom: .85rem;
   border: 1px solid var(--color-border);
@@ -925,7 +944,7 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: .85rem 1.25rem;
+  padding: 0.95rem 1.25rem;
   cursor: pointer;
   list-style: none;
   background: var(--color-surface-hover);
@@ -937,9 +956,9 @@ input, textarea, select {
 }
 .priority-badge {
   color: #ffffff;
-  padding: .2rem .7rem;
+  padding: .2rem .75rem;
   border-radius: 20px;
-  font-size: .78rem;
+  font-size: .75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -947,40 +966,56 @@ input, textarea, select {
 .priority-group__count {
   font-size: .88rem;
   color: var(--color-muted);
-  font-weight: 500;
+  font-weight: 600;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
 }
 .priority-group__items {
-  padding: 1rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: .75rem;
+  border-top: 1px solid var(--color-border);
 }
 .priority-card {
-  padding: .85rem 1.1rem;
+  padding: 1rem 1.25rem;
   border-left: 4px solid;
   border-radius: 4px;
   font-size: .92rem;
   line-height: 1.6;
   background: var(--color-surface);
+  transition: transform 0.2s ease;
+}
+.priority-card:hover {
+  transform: translateX(4px);
 }
 
 /* ── Section Suggestions ────────────────────────────────── */
 .section-suggestions__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.25rem;
+  margin-top: 1rem;
 }
 .suggestion-card {
-  background: var(--color-surface);
+  background: var(--color-surface-hover);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  transition: all 0.25s ease;
+}
+.suggestion-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
   box-shadow: var(--shadow);
 }
 .suggestion-card__title {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  margin-bottom: .6rem;
+  margin-bottom: .5rem;
   color: var(--color-primary);
   font-family: var(--font-heading);
 }
@@ -988,17 +1023,15 @@ input, textarea, select {
   font-size: .92rem;
   color: var(--color-text);
   line-height: 1.6;
+  opacity: 0.95;
 }
 
 /* ── Missing Skills Tag Cloud ─────────────────────────── */
-.missing-skills {
-  margin-top: 1.5rem;
-}
 .missing-skills__tags {
   display: flex;
   flex-wrap: wrap;
   gap: .6rem;
-  margin-top: .75rem;
+  margin-top: 1rem;
 }
 .skill-tag {
   background: rgba(99, 102, 241, 0.08);
@@ -1008,6 +1041,11 @@ input, textarea, select {
   border-radius: 20px;
   font-size: .85rem;
   font-weight: 600;
+  transition: all 0.2s ease;
+}
+.skill-tag:hover {
+  background: var(--color-primary);
+  color: #ffffff;
 }
 
 /* ── Status Badges ─────────────────────────────────────── */

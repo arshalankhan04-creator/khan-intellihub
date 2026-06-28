@@ -20,40 +20,44 @@ export function PriorityActions({ actions }) {
   }
 
   return (
-    <div className="priority-actions">
-      <h3 className="section-heading">Priority Actions</h3>
-      {Object.entries(grouped).map(([priority, items]) => {
-        if (items.length === 0) return null
-        const config = PRIORITY_CONFIG[priority]
+    <div className="card results-card priority-actions" style={{ display: 'block' }}>
+      <h2 className="section-title">Priority Actions</h2>
+      <p className="section-subtitle-hint">Focus on these high-impact tasks to optimize your ATS score.</p>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1.25rem' }}>
+        {Object.entries(grouped).map(([priority, items]) => {
+          if (items.length === 0) return null
+          const config = PRIORITY_CONFIG[priority]
 
-        return (
-          <details key={priority} open={priority === 'high'} className="priority-group">
-            <summary className="priority-group__summary">
-              <span
-                className="priority-badge"
-                style={{ backgroundColor: config.borderColor }}
-              >
-                {config.label}
-              </span>
-              <span className="priority-group__count">{items.length}</span>
-            </summary>
-            <div className="priority-group__items">
-              {items.map((item, i) => (
-                <div
-                  key={i}
-                  className="priority-card"
-                  style={{
-                    borderLeftColor: config.borderColor,
-                    backgroundColor: config.bgColor,
-                  }}
+          return (
+            <details key={priority} open={priority === 'high'} className="priority-group">
+              <summary className="priority-group__summary">
+                <span
+                  className="priority-badge"
+                  style={{ backgroundColor: config.borderColor }}
                 >
-                  {item.action}
-                </div>
-              ))}
-            </div>
-          </details>
-        )
-      })}
+                  {config.label}
+                </span>
+                <span className="priority-group__count">{items.length} Tasks</span>
+              </summary>
+              <div className="priority-group__items">
+                {items.map((item, i) => (
+                  <div
+                    key={i}
+                    className="priority-card"
+                    style={{
+                      borderLeftColor: config.borderColor,
+                      backgroundColor: 'var(--color-surface-hover)',
+                    }}
+                  >
+                    {item.action}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 /**
  * Full feedback report display.
- * Renders all sub-sections from the backend feedback_report object.
+ * Renders all sub-sections from the backend feedback_report object in a modern card-based grid layout.
  * Props:
  *   feedbackReport  object — the feedback_report from the API
  */
@@ -15,20 +15,10 @@ function BulletList({ items, icon }) {
       {items.map((item, i) => (
         <li key={i} className="bullet-list__item">
           <span className="bullet-list__icon" aria-hidden="true">{icon}</span>
-          <span>{item}</span>
+          <span className="bullet-list__text">{item}</span>
         </li>
       ))}
     </ul>
-  )
-}
-
-function SubSection({ title, items }) {
-  if (!items || items.length === 0) return null
-  return (
-    <div className="feedback-subsection">
-      <h3 className="section-heading">{title}</h3>
-      <BulletList items={items} icon="→" />
-    </div>
   )
 }
 
@@ -49,47 +39,85 @@ export function FeedbackSection({ feedbackReport }) {
 
   return (
     <div className="feedback-section">
+      
+      {/* Card 1: Overview Summary, Strengths & Weaknesses */}
+      <div className="card results-card" style={{ display: 'block' }}>
+        {overall_summary && (
+          <div className="feedback-summary" style={{ marginBottom: '1.75rem' }}>
+            <h2 className="section-title">Analysis Summary</h2>
+            <p className="feedback-summary__text" style={{ fontSize: '1.02rem', lineHeight: '1.6', color: 'var(--color-text)', opacity: 0.95 }}>
+              {overall_summary}
+            </p>
+          </div>
+        )}
 
-      {/* Overall Summary */}
-      {overall_summary && (
-        <div className="feedback-summary">
-          <h3 className="section-heading">Overall Summary</h3>
-          <p className="feedback-summary__text">{overall_summary}</p>
+        <div className="strengths-weaknesses-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.5rem' }}>
+          {/* Strengths Column */}
+          {top_strengths?.length > 0 && (
+            <div className="feedback-column">
+              <h3 className="section-heading" style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>✓</span> Top Strengths
+              </h3>
+              <BulletList items={top_strengths} icon="✦" />
+            </div>
+          )}
+
+          {/* Weaknesses Column */}
+          {top_weaknesses?.length > 0 && (
+            <div className="feedback-column">
+              <h3 className="section-heading" style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>✗</span> Areas for Improvement
+              </h3>
+              <BulletList items={top_weaknesses} icon="✦" />
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Strengths */}
-      {top_strengths?.length > 0 && (
-        <div className="feedback-subsection">
-          <h3 className="section-heading">Top Strengths</h3>
-          <BulletList items={top_strengths} icon="✓" />
-        </div>
-      )}
-
-      {/* Weaknesses */}
-      {top_weaknesses?.length > 0 && (
-        <div className="feedback-subsection">
-          <h3 className="section-heading">Top Weaknesses</h3>
-          <BulletList items={top_weaknesses} icon="✗" />
-        </div>
-      )}
-
-      {/* Priority Actions */}
+      {/* Card 2: Priority Action Steps */}
       <PriorityActions actions={priority_actions} />
 
-      {/* Section Suggestions */}
+      {/* Card 3: Section Improvement Suggestions */}
       <SectionSuggestions suggestions={section_suggestions} />
 
-      {/* Skills Suggestions */}
-      <SubSection title="Skills Suggestions" items={skills_suggestions} />
+      {/* Card 4: Detailed Recommendations Grid (Skills, Exp, Enhancement) */}
+      {(skills_suggestions?.length > 0 || experience_suggestions?.length > 0 || enhancement_tips?.length > 0) && (
+        <div className="card results-card detailed-recommendations" style={{ display: 'block' }}>
+          <h2 className="section-title">Detailed Recommendations</h2>
+          <p className="section-subtitle-hint">Follow these specific formatting and wording suggestions to polish your content.</p>
 
-      {/* Experience Suggestions */}
-      <SubSection title="Experience Suggestions" items={experience_suggestions} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginTop: '1.5rem' }}>
+            {skills_suggestions?.length > 0 && (
+              <div className="recommendation-column">
+                <h3 className="section-heading" style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--color-primary)', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+                  Skills Optimizations
+                </h3>
+                <BulletList items={skills_suggestions} icon="⚡" />
+              </div>
+            )}
 
-      {/* Enhancement Tips */}
-      <SubSection title="Enhancement Tips" items={enhancement_tips} />
+            {experience_suggestions?.length > 0 && (
+              <div className="recommendation-column">
+                <h3 className="section-heading" style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--color-secondary)', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+                  Experience Quality
+                </h3>
+                <BulletList items={experience_suggestions} icon="💼" />
+              </div>
+            )}
 
-      {/* Missing Skills Tags */}
+            {enhancement_tips?.length > 0 && (
+              <div className="recommendation-column">
+                <h3 className="section-heading" style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--color-success)', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+                  Formatting & Tips
+                </h3>
+                <BulletList items={enhancement_tips} icon="✦" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Card 5: Missing Skills Tags */}
       <MissingSkillsTags skills={missing_skills} />
 
     </div>

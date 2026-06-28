@@ -53,15 +53,34 @@ export function ResultsPage() {
 
   return (
     <div className="results-page page-container">
-      <div className="results-page__header">
-        <h1 className="page-title">{data.original_filename}</h1>
-        <Link to="/history" className="link back-link">← Back to History</Link>
+      {/* Hero Header Banner */}
+      <div className="career-results-hero">
+        <div className="career-results-hero__content">
+          <h1 className="career-results-hero__title" style={{ fontSize: '1.85rem' }}>{data.original_filename}</h1>
+          <div className="career-results-hero__meta">
+            <div className="career-results-hero__meta-item">
+              <span className="career-results-hero__meta-icon">📋</span>
+              <span>ATS Analysis Report</span>
+            </div>
+            <div className="career-results-hero__meta-item">
+              <span className="career-results-hero__meta-icon">🕒</span>
+              <span>Analyzed on: <strong>{new Date(data.created_at).toLocaleDateString()}</strong></span>
+            </div>
+          </div>
+        </div>
+        <Link to="/history" className="career-results-hero__back-btn">
+          <span>←</span> Back to History
+        </Link>
       </div>
 
-      {/* Score + Breakdown side by side on larger screens */}
+      {/* Score + Breakdown Grid */}
       <div className="results-page__top">
-        <ScoreGauge score={data.ats_score} />
-        <ScoreBreakdown scores={data.scores} />
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 0 }}>
+          <ScoreGauge score={data.ats_score} />
+        </div>
+        <div className="card" style={{ margin: 0 }}>
+          <ScoreBreakdown scores={data.scores} />
+        </div>
       </div>
 
       {/* Full feedback report */}
