@@ -1390,3 +1390,44 @@ input, textarea, select {
   background-color: var(--color-surface-hover);
   color: var(--color-primary);
 }
+
+/* ── Searchable Dropdown ───────────────────────────────── */
+.searchable-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.searchable-dropdown__input {
+  padding-right: 2.5rem !important; /* Make room for the chevron */
+}
+.searchable-dropdown__chevron {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, color 0.2s;
+  user-select: none;
+}
+.searchable-dropdown__chevron:hover {
+  color: var(--color-text);
+}
+.searchable-dropdown__chevron--open {
+  transform: rotate(180deg);
+}
+.suggestion-item--no-results {
+  color: var(--color-muted);
+  cursor: default;
+  font-style: italic;
+}
+.suggestion-item--no-results:hover {
+  background: none;
+  color: var(--color-muted);
+}

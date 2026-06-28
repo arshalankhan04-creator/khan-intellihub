@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { listResumes, uploadResume } from '../api/resumeService'
 import { generateAdvice, getAdviceHistory, deleteAdviceRecord } from '../api/careerAdvisorService'
@@ -38,9 +38,25 @@ export function CareerAdvisorPage() {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
-  // Autocomplete suggestions
-  const [showJobSug, setShowJobSug] = useState(false)
-  const [showLocSug, setShowLocSug] = useState(false)
+  // Searchable dropdown states and refs
+  const [jobDropdownOpen, setJobDropdownOpen] = useState(false)
+  const [locDropdownOpen, setLocDropdownOpen] = useState(false)
+
+  const jobRef = useRef(null)
+  const locRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (jobRef.current && !jobRef.current.contains(event.target)) {
+        setJobDropdownOpen(false)
+      }
+      if (locRef.current && !locRef.current.contains(event.target)) {
+        setLocDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const jobSuggestions = [
     'Software Engineer', 'Full-Stack Developer', 'Frontend Developer', 'Backend Developer',
@@ -282,68 +298,108 @@ export function CareerAdvisorPage() {
             )}
 
             <div className="form-row">
-              <div className="form-group autocomplete-container">
+              <div className="form-group autocomplete-container" ref={jobRef}>
                 <label className="form-label" htmlFor="targetRole">Target Job Title</label>
-                <input
-                  id="targetRole"
-                  type="text"
-                  className="form-input"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  onFocus={() => setShowJobSug(true)}
-                  onBlur={() => setShowJobSug(false)}
-                  placeholder="e.g. Frontend Developer"
-                  disabled={generating}
-                  required
-                  autoComplete="off"
-                />
-                {showJobSug && filteredJobs.length > 0 && (
+                <div className="searchable-dropdown">
+                  <input
+                    id="targetRole"
+                    type="text"
+                    className="form-input searchable-dropdown__input"
+                    value={targetRole}
+                    onChange={(e) => {
+                      setTargetRole(e.target.value)
+                      setJobDropdownOpen(true)
+                    }}
+                    onClick={() => setJobDropdownOpen(true)}
+                    placeholder="Select or search job title..."
+                    disabled={generating}
+                    required
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    className={`searchable-dropdown__chevron ${jobDropdownOpen ? 'searchable-dropdown__chevron--open' : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setJobDropdownOpen(!jobDropdownOpen)
+                    }}
+                    disabled={generating}
+                  >
+                    ▼
+                  </button>
+                </div>
+                {jobDropdownOpen && (
                   <ul className="suggestions-list">
-                    {filteredJobs.map((item, idx) => (
-                      <li
-                        key={idx}
-                        className="suggestion-item"
-                        onMouseDown={() => {
-                          setTargetRole(item)
-                          setShowJobSug(false)
-                        }}
-                      >
-                        {item}
-                      </li>
-                    ))}
+                    {filteredJobs.length > 0 ? (
+                      filteredJobs.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className="suggestion-item"
+                          onClick={() => {
+                            setTargetRole(item)
+                            setJobDropdownOpen(false)
+                          }}
+                        >
+                          {item}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="suggestion-item suggestion-item--no-results">No matches found</li>
+                    )}
                   </ul>
                 )}
               </div>
 
-              <div className="form-group autocomplete-container">
+              <div className="form-group autocomplete-container" ref={locRef}>
                 <label className="form-label" htmlFor="location">Target Location</label>
-                <input
-                  id="location"
-                  type="text"
-                  className="form-input"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  onFocus={() => setShowLocSug(true)}
-                  onBlur={() => setShowLocSug(false)}
-                  placeholder="e.g. San Francisco, CA"
-                  disabled={generating}
-                  required
-                  autoComplete="off"
-                />
-                {showLocSug && filteredLocs.length > 0 && (
+                <div className="searchable-dropdown">
+                  <input
+                    id="location"
+                    type="text"
+                    className="form-input searchable-dropdown__input"
+                    value={location}
+                    onChange={(e) => {
+                      setLocation(e.target.value)
+                      setLocDropdownOpen(true)
+                    }}
+                    onClick={() => setLocDropdownOpen(true)}
+                    placeholder="Select or search location..."
+                    disabled={generating}
+                    required
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    className={`searchable-dropdown__chevron ${locDropdownOpen ? 'searchable-dropdown__chevron--open' : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setLocDropdownOpen(!locDropdownOpen)
+                    }}
+                    disabled={generating}
+                  >
+                    ▼
+                  </button>
+                </div>
+                {locDropdownOpen && (
                   <ul className="suggestions-list">
-                    {filteredLocs.map((item, idx) => (
-                      <li
-                        key={idx}
-                        className="suggestion-item"
-                        onMouseDown={() => {
-                          setLocation(item)
-                          setShowLocSug(false)
-                        }}
-                      >
-                        {item}
-                      </li>
-                    ))}
+                    {filteredLocs.length > 0 ? (
+                      filteredLocs.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className="suggestion-item"
+                          onClick={() => {
+                            setLocation(item)
+                            setLocDropdownOpen(false)
+                          }}
+                        >
+                          {item}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="suggestion-item suggestion-item--no-results">No matches found</li>
+                    )}
                   </ul>
                 )}
               </div>
